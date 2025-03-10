@@ -2,23 +2,23 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -34,14 +34,13 @@ jobs:
         run: |
           echo "Contents of out directory:"
           ls -la out/
-          echo "\nContents of out/_next directory:"
-          ls -la out/_next || echo "No _next directory"
-          echo "\nContents of index.html:"
-          cat out/index.html
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
-          enable_jekyll: false 
+          folder: out
+          branch: gh-pages
+          clean: true
+          clean-exclude: |
+            .nojekyll
+          force: true 
