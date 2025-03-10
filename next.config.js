@@ -5,8 +5,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  assetPrefix: '/pokemon-card-tracker/',
-  trailingSlash: true,
 };
 
 module.exports = nextConfig; 
