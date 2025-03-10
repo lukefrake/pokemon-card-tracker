@@ -4,8 +4,9 @@ import { Card, Set } from 'pokemon-tcg-sdk-typescript/dist/sdk';
 const registerServiceWorker = async () => {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register('/pokemon-card-tracker/sw.js', {
-        scope: '/pokemon-card-tracker/',
+      const basePath = process.env.NODE_ENV === 'production' ? '/pokemon-card-tracker' : '';
+      const registration = await navigator.serviceWorker.register(`${basePath}/sw.js`, {
+        scope: basePath || '/',
       });
       
       if (registration.active) {
