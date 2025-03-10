@@ -30,11 +30,18 @@ jobs:
       - name: Add .nojekyll file
         run: touch out/.nojekyll
 
-      - name: List output directory
-        run: ls -la out/
+      - name: Debug output directory
+        run: |
+          echo "Contents of out directory:"
+          ls -la out/
+          echo "\nContents of out/_next directory:"
+          ls -la out/_next || echo "No _next directory"
+          echo "\nContents of index.html:"
+          cat out/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out 
+          publish_dir: ./out
+          enable_jekyll: false 
