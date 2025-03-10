@@ -1,6 +1,4 @@
-const CACHE_NAME = 'pokemon-card-cache-v1';
 const API_CACHE_NAME = 'pokemon-api-cache-v1';
-const BASE_PATH = '/pokemon-card-tracker';
 
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing.');
@@ -46,14 +44,6 @@ self.addEventListener('fetch', (event) => {
           console.error('Service Worker error:', error);
           throw error;
         })
-    );
-  } else {
-    // For all other requests, try cache first, then network
-    const adjustedUrl = event.request.url.replace(BASE_PATH, '');
-    event.respondWith(
-      caches.match(adjustedUrl).then((response) => {
-        return response || fetch(event.request);
-      })
     );
   }
 }); 
