@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import type { Set } from '../lib/pokemon-tcg';
 import { PokemonTCG } from '../lib/pokemon-tcg';

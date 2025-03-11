@@ -1,5 +1,7 @@
+'use client';
+
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface CollectionState {
   profileName: string | null;
@@ -8,6 +10,8 @@ interface CollectionState {
   addCard: (cardId: string) => void;
   removeCard: (cardId: string) => void;
   hasCard: (cardId: string) => boolean;
+  hydrated: boolean;
+  setHydrated: () => void;
 }
 
 export const useCollectionStore = create<CollectionState>()(
@@ -15,6 +19,8 @@ export const useCollectionStore = create<CollectionState>()(
     (set, get) => ({
       profileName: null,
       collection: {},
+      hydrated: false,
+      setHydrated: () => set({ hydrated: true }),
       setProfileName: (name) => 
         set(() => ({
           profileName: name,
@@ -37,6 +43,8 @@ export const useCollectionStore = create<CollectionState>()(
     }),
     {
       name: 'pokemon-collection',
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
     }
   )
 ); 

@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Set, Card } from '../lib/pokemon-tcg';
 import { PokemonTCG } from '../lib/pokemon-tcg';
 import { SetList } from '../components/SetList';
 import { CardItem } from '../components/CardItem';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ProfileManager } from '../components/ProfileManager';
-import { ServiceWorkerStatus } from '../components/ServiceWorkerStatus';
 import { useCollectionStore } from '../store/collectionStore';
 
 export default function Home() {
@@ -15,6 +14,8 @@ export default function Home() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(false);
   const profileName = useCollectionStore((state) => state.profileName);
+  const hydrated = useCollectionStore((state) => state.hydrated);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleSetSelect = async (set: Set) => {
     setLoading(true);
@@ -28,6 +29,22 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (hydrated) {
+      setIsLoading(false);
+    }
+  }, [hydrated]);
+
+  if (isLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -80,7 +97,6 @@ export default function Home() {
           </>
         )
       ) : null}
-      <ServiceWorkerStatus />
     </main>
   );
 }

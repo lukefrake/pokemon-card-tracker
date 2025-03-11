@@ -1,17 +1,25 @@
-import type { Card } from '../lib/pokemon-tcg';
+'use client';
+
 import { useCollectionStore } from '../store/collectionStore';
+import type { Card } from '../lib/pokemon-tcg';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 
 interface CardItemProps {
   card: Card;
 }
 
-export const CardItem = ({ card }: CardItemProps) => {
+export function CardItem({ card }: CardItemProps) {
   const { addCard, removeCard, hasCard } = useCollectionStore();
-  const isCollected = hasCard(card.id);
+  const hydrated = useCollectionStore((state) => state.hydrated);
+
+  if (!hydrated) {
+    return null;
+  }
+
+  const isInCollection = hasCard(card.id);
 
   const handleCardClick = () => {
-    if (isCollected) {
+    if (isInCollection) {
       removeCard(card.id);
     } else {
       addCard(card.id);
@@ -29,7 +37,7 @@ export const CardItem = ({ card }: CardItemProps) => {
           alt={card.name}
           className="w-full h-full object-cover transition-transform group-hover:scale-110"
         />
-        {isCollected && (
+        {isInCollection && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <CheckCircleIcon className="w-12 h-12 text-green-500" />
           </div>
@@ -43,4 +51,4 @@ export const CardItem = ({ card }: CardItemProps) => {
       </div>
     </div>
   );
-}; 
+} 
