@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -24,7 +24,7 @@ console.log('Firebase configuration:', {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 console.log('Firebase initialized with project:', app.options.projectId);
-const db = getFirestore(app);
+let db: Firestore = getFirestore(app);
 
 export interface CollectionData {
   profileName: string | null;
