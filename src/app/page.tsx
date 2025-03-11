@@ -10,6 +10,7 @@ import { ProfileManager } from '../components/ProfileManager';
 import { useCollectionStore } from '../store/collectionStore';
 import { StorageWarning } from '../components/StorageWarning';
 import { StoreDebug } from '../components/StoreDebug';
+import { ErrorDisplay } from '../components/ErrorDisplay';
 
 export default function Home() {
   const [selectedSet, setSelectedSet] = useState<Set | null>(null);
@@ -117,6 +118,7 @@ export default function Home() {
 
       <StorageWarning />
       <StoreDebug />
+      <ErrorDisplay />
 
       {!profileName && (
         <div className="mb-8">

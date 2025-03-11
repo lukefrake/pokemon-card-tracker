@@ -1,141 +1,119 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { User } from 'firebase/auth';
+import { initializeAuth, getUserCollection, saveUserCollection, onAuthChange } from '../lib/firebase';
 
 interface CollectionState {
   profileName: string | null;
   collection: Record<string, boolean>;
+  hydrated: boolean;
+  user: User | null;
+  error: string | null;
+  setHydrated: () => void;
   setProfileName: (name: string) => void;
   addCard: (cardId: string) => void;
   removeCard: (cardId: string) => void;
   hasCard: (cardId: string) => boolean;
-  hydrated: boolean;
-  setHydrated: () => void;
+  setUser: (user: User | null) => void;
+  setError: (error: string | null) => void;
+  syncWithFirebase: () => Promise<void>;
 }
 
-// Create a function that returns the storage implementation
-const createStorage = () => {
-  // Only import and use IndexedDB on the client side
-  if (typeof window === 'undefined') {
-    return {
-      getItem: async () => null,
-      setItem: async () => {},
-      removeItem: async () => {},
-    };
-  }
-
-  // Dynamically import idb-keyval only on the client side
-  const getIdbKeyval = async () => {
-    return import('idb-keyval').then(module => ({
-      get: module.get,
-      set: module.set,
-      del: module.del
-    }));
-  };
-
-  return {
-    getItem: async (name: string): Promise<string | null> => {
-      try {
-        // Try localStorage first
-        const localData = localStorage.getItem(name);
-        if (localData) {
-          console.log('Found data in localStorage');
-          return localData;
-        }
-
-        // Fall back to IndexedDB
-        console.log('Checking IndexedDB...');
-        const idb = await getIdbKeyval();
-        const idbData = await idb.get(name);
-        if (idbData) {
-          console.log('Found data in IndexedDB');
-          // If found in IndexedDB, also set in localStorage for faster access next time
-          try {
-            localStorage.setItem(name, idbData);
-          } catch (e) {
-            console.warn('Could not save to localStorage:', e);
-          }
-          return idbData;
-        }
-        return null;
-      } catch (error) {
-        console.error('Storage error:', error);
-        return null;
-      }
-    },
-
-    setItem: async (name: string, value: string): Promise<void> => {
-      let savedToLocalStorage = false;
-      try {
-        // Try localStorage first
-        localStorage.setItem(name, value);
-        savedToLocalStorage = true;
-        console.log('Saved to localStorage');
-      } catch (error) {
-        console.warn('localStorage failed:', error);
-      }
-
-      try {
-        // Try IndexedDB as backup
-        const idb = await getIdbKeyval();
-        await idb.set(name, value);
-        console.log('Saved to IndexedDB');
-      } catch (error) {
-        console.error('IndexedDB save failed:', error);
-        if (!savedToLocalStorage) {
-          console.warn('Could not save to any storage mechanism');
-        }
-      }
-    },
-
-    removeItem: async (name: string): Promise<void> => {
-      try {
-        localStorage.removeItem(name);
-        const idb = await getIdbKeyval();
-        await idb.del(name);
-        console.log('Removed from storage');
-      } catch (error) {
-        console.error('Storage error:', error);
-      }
-    },
-  };
-};
-
-// Create the store
 export const useCollectionStore = create<CollectionState>()(
   persist(
     (set, get) => ({
       profileName: null,
       collection: {},
       hydrated: false,
+      user: null,
+      error: null,
       setHydrated: () => set({ hydrated: true }),
-      setProfileName: (name) => set({ profileName: name }),
-      addCard: (cardId) =>
+      setUser: (user) => set({ user }),
+      setError: (error) => set({ error }),
+      setProfileName: async (name) => {
+        set({ profileName: name });
+        await get().syncWithFirebase();
+      },
+      addCard: async (cardId) => {
         set((state) => ({
           collection: {
             ...state.collection,
             [cardId]: true,
           },
-        })),
-      removeCard: (cardId) =>
+        }));
+        await get().syncWithFirebase();
+      },
+      removeCard: async (cardId) => {
         set((state) => {
           const { [cardId]: removed, ...rest } = state.collection;
           return {
             collection: rest,
           };
-        }),
+        });
+        await get().syncWithFirebase();
+      },
       hasCard: (cardId) => get().collection[cardId] || false,
+      syncWithFirebase: async () => {
+        const { user, profileName, collection } = get();
+        if (!user) return;
+
+        try {
+          await saveUserCollection(user.uid, {
+            profileName,
+            collection,
+            lastUpdated: Date.now(),
+          });
+        } catch (error) {
+          console.error('Error syncing with Firebase:', error);
+          set({ error: 'Failed to save your collection. Please try again.' });
+        }
+      },
     }),
     {
       name: 'pokemon-collection',
-      storage: createJSONStorage(createStorage),
       partialize: (state) => ({
         profileName: state.profileName,
         collection: state.collection,
       }),
-      onRehydrateStorage: () => (state) => {
-        useCollectionStore.getState().setHydrated();
+      onRehydrateStorage: () => async (state) => {
+        if (!state) return;
+
+        try {
+          // Initialize anonymous auth
+          const user = await initializeAuth();
+          state.setUser(user);
+          
+          // Get collection from Firebase
+          const firebaseData = await getUserCollection(user.uid);
+          if (firebaseData) {
+            if (firebaseData.profileName) {
+              state.setProfileName(firebaseData.profileName);
+            }
+            useCollectionStore.setState({ collection: firebaseData.collection });
+          }
+          
+          // Set up auth state listener
+          onAuthChange((user) => {
+            state.setUser(user);
+            if (user) {
+              getUserCollection(user.uid).then((data) => {
+                if (data) {
+                  if (data.profileName) {
+                    state.setProfileName(data.profileName);
+                  }
+                  useCollectionStore.setState({ collection: data.collection });
+                }
+              });
+            }
+          });
+        } catch (error) {
+          console.error('Error initializing store:', error);
+          state.setError('Failed to initialize. Please refresh the page.');
+        }
+
+        state.setHydrated();
       },
     }
   )

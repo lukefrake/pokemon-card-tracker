@@ -1,18 +1,10 @@
 /** @type {import('next').NextConfig} */
-const isProduction = process.env.NODE_ENV === 'production';
-const basePath = isProduction ? '/pokemon-card-tracker' : '';
-
 const nextConfig = {
-  ...(isProduction ? {
-    output: 'export',
-    distDir: 'out',
-  } : {}),
-  basePath: basePath,
-  assetPrefix: basePath,
+  output: 'export',
   images: {
     unoptimized: true,
   },
-  trailingSlash: true,
-};
+  basePath: process.env.NODE_ENV === 'production' ? '/pokemon-card-tracker' : '',
+}
 
-module.exports = nextConfig; 
+module.exports = nextConfig 
