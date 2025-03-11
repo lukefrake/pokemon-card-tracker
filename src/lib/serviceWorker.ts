@@ -10,10 +10,11 @@ export async function registerServiceWorker() {
     // Get the correct path for GitHub Pages
     const basePath = process.env.NODE_ENV === 'production' ? '/pokemon-card-tracker' : '';
     const swPath = `${basePath}/sw.js`;
+    const scope = `${basePath}/`; // Ensure trailing slash
     
     console.log('Registering service worker with:', {
       swPath,
-      scope: basePath || '/',
+      scope,
       location: window.location.href
     });
 
@@ -26,7 +27,7 @@ export async function registerServiceWorker() {
 
     // Register new service worker
     const registration = await navigator.serviceWorker.register(swPath, {
-      scope: basePath || '/',
+      scope,
     });
 
     console.log('Service worker registered with scope:', registration.scope);

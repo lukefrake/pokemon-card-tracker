@@ -6,7 +6,7 @@ const getBasePath = () => {
   console.log('Service worker path:', path);
   const basePath = path.substring(0, path.lastIndexOf('/'));
   console.log('Base path:', basePath);
-  return basePath;
+  return basePath + '/'; // Ensure trailing slash
 };
 
 self.addEventListener('install', (event) => {
