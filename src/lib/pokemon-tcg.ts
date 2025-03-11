@@ -8,7 +8,9 @@ const registerServiceWorker = async () => {
       const swPath = `${basePath}/sw.js`;
       console.log('Registering service worker at:', swPath);
       
-      const registration = await navigator.serviceWorker.register(swPath);
+      const registration = await navigator.serviceWorker.register(swPath, {
+        scope: basePath || '/'
+      });
       
       if (registration.active) {
         console.log('Service worker active');
