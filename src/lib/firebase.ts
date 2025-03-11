@@ -12,19 +12,35 @@ const firebaseConfig = {
 };
 
 // Debug Firebase configuration
-console.log('Firebase configuration:', {
-  apiKey: firebaseConfig.apiKey ? 'Set' : 'Missing',
-  authDomain: firebaseConfig.authDomain ? 'Set' : 'Missing',
-  projectId: firebaseConfig.projectId ? 'Set' : 'Missing',
-  storageBucket: firebaseConfig.storageBucket ? 'Set' : 'Missing',
-  messagingSenderId: firebaseConfig.messagingSenderId ? 'Set' : 'Missing',
-  appId: firebaseConfig.appId ? 'Set' : 'Missing'
+console.log('[Firebase Config]', {
+  hasApiKey: !!firebaseConfig.apiKey,
+  hasAuthDomain: !!firebaseConfig.authDomain,
+  hasProjectId: !!firebaseConfig.projectId,
+  hasStorageBucket: !!firebaseConfig.storageBucket,
+  hasMessagingSenderId: !!firebaseConfig.messagingSenderId,
+  hasAppId: !!firebaseConfig.appId,
+  environment: process.env.NODE_ENV,
+  isClient: typeof window !== 'undefined'
 });
 
+let app;
+let db: Firestore;
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-console.log('Firebase initialized with project:', app.options.projectId);
-let db: Firestore = getFirestore(app);
+try {
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    throw new Error('Missing required Firebase configuration. Check environment variables.');
+  }
+
+  app = initializeApp(firebaseConfig);
+  console.log('[Firebase] Initialized with project:', app.options.projectId);
+  
+  db = getFirestore(app);
+  console.log('[Firebase] Firestore initialized');
+} catch (error) {
+  console.error('[Firebase] Initialization error:', error);
+  throw error;
+}
 
 export interface CollectionData {
   profileName: string | null;
@@ -35,48 +51,61 @@ export interface CollectionData {
 // Function to get the current user's collection
 export async function getUserCollection(profileName: string): Promise<CollectionData | null> {
   try {
-    console.log('Getting collection for profile:', profileName);
+    if (!db) {
+      throw new Error('Firestore not initialized');
+    }
+    
+    console.log('[Firebase] Getting collection for profile:', profileName);
     const docRef = doc(db, 'collections', profileName);
-    console.log('Document reference created for:', docRef.path);
+    console.log('[Firebase] Document reference created for:', docRef.path);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
       const data = docSnap.data() as CollectionData;
-      console.log('Found collection with data:', {
+      console.log('[Firebase] Found collection:', {
         profileName: data.profileName,
         cardCount: Object.keys(data.collection).length,
         lastUpdated: new Date(data.lastUpdated).toISOString()
       });
       return data;
     }
-    console.log('No collection found for profile:', profileName);
+    console.log('[Firebase] No collection found for profile:', profileName);
     return null;
   } catch (error) {
-    console.error('Error getting collection:', error);
-    throw error; // Re-throw to ensure errors are properly handled
+    console.error('[Firebase] Error getting collection:', {
+      error,
+      profileName,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw error;
   }
 }
 
 // Function to save the user's collection
 export async function saveUserCollection(profileName: string, data: CollectionData): Promise<void> {
   try {
-    console.log('Saving collection for profile:', profileName);
-    console.log('Collection data:', {
-      profileName: data.profileName,
+    if (!db) {
+      throw new Error('Firestore not initialized');
+    }
+    
+    console.log('[Firebase] Saving collection:', {
+      profileName,
       cardCount: Object.keys(data.collection).length,
       lastUpdated: new Date(data.lastUpdated).toISOString()
     });
     
     const docRef = doc(db, 'collections', profileName);
-    console.log('Document reference created for:', docRef.path);
+    console.log('[Firebase] Document reference created for:', docRef.path);
     
     await setDoc(docRef, data);
-    console.log('Collection saved successfully to Firebase');
-  } catch (error: any) {
-    console.error('Firebase save error:', {
-      message: error?.message || 'Unknown error',
-      code: error?.code || 'UNKNOWN',
-      stack: error?.stack || 'No stack trace'
+    console.log('[Firebase] Collection saved successfully');
+  } catch (error) {
+    console.error('[Firebase] Save error:', {
+      error,
+      profileName,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     });
     throw error;
   }

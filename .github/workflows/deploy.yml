@@ -61,6 +61,31 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Debug Build Output
+        run: |
+          echo "Checking build output structure..."
+          ls -la out/
+          
+          echo "\nChecking for environment variables in JavaScript files..."
+          find out/ -type f -name "*.js" -exec grep -l "firebase" {} \;
+          
+          echo "\nChecking specific files for Firebase initialization..."
+          for file in $(find out/ -type f -name "*.js"); do
+            if grep -l "initializeApp" "$file" > /dev/null; then
+              echo "Found Firebase init in: $file"
+              echo "File contents:"
+              cat "$file" | grep -A 5 -B 5 "initializeApp"
+            fi
+          done
+          
+          echo "\nChecking Next.js build info..."
+          if [ -f ".next/build-manifest.json" ]; then
+            cat .next/build-manifest.json
+          fi
+          
+          echo "\nChecking for environment variables..."
+          find out/ -type f -name "*.js" -exec grep -l "NEXT_PUBLIC_FIREBASE" {} \;
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
