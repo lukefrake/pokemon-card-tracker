@@ -8,6 +8,8 @@ import { CardItem } from '../components/CardItem';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ProfileManager } from '../components/ProfileManager';
 import { useCollectionStore } from '../store/collectionStore';
+import { StorageWarning } from '../components/StorageWarning';
+import { StoreDebug } from '../components/StoreDebug';
 
 export default function Home() {
   const [selectedSet, setSelectedSet] = useState<Set | null>(null);
@@ -112,6 +114,9 @@ export default function Home() {
       <h1 className="text-4xl font-bold mb-8 text-center text-gray-900 dark:text-gray-100">
         {profileName ? `${profileName}'s ` : ''}Pokemon Card Tracker
       </h1>
+
+      <StorageWarning />
+      <StoreDebug />
 
       {!profileName && (
         <div className="mb-8">
