@@ -11,6 +11,16 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+// Debug Firebase configuration
+console.log('Firebase configuration:', {
+  apiKey: firebaseConfig.apiKey ? 'Set' : 'Missing',
+  authDomain: firebaseConfig.authDomain ? 'Set' : 'Missing',
+  projectId: firebaseConfig.projectId ? 'Set' : 'Missing',
+  storageBucket: firebaseConfig.storageBucket ? 'Set' : 'Missing',
+  messagingSenderId: firebaseConfig.messagingSenderId ? 'Set' : 'Missing',
+  appId: firebaseConfig.appId ? 'Set' : 'Missing'
+});
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 console.log('Firebase initialized with project:', app.options.projectId);
@@ -25,41 +35,45 @@ export interface CollectionData {
 // Function to get the current user's collection
 export async function getUserCollection(profileName: string): Promise<CollectionData | null> {
   try {
+    console.log('Getting collection for profile:', profileName);
     const docRef = doc(db, 'collections', profileName);
+    console.log('Document reference created for:', docRef.path);
     const docSnap = await getDoc(docRef);
     
-    console.log('Fetching collection for profile:', profileName);
     if (docSnap.exists()) {
-      console.log('Found collection with data:', docSnap.data());
-      return docSnap.data() as CollectionData;
+      const data = docSnap.data() as CollectionData;
+      console.log('Found collection with data:', {
+        profileName: data.profileName,
+        cardCount: Object.keys(data.collection).length,
+        lastUpdated: new Date(data.lastUpdated).toISOString()
+      });
+      return data;
     }
-    console.log('No collection found for profile');
+    console.log('No collection found for profile:', profileName);
     return null;
   } catch (error) {
     console.error('Error getting collection:', error);
-    return null;
+    throw error; // Re-throw to ensure errors are properly handled
   }
 }
 
 // Function to save the user's collection
 export async function saveUserCollection(profileName: string, data: CollectionData): Promise<void> {
   try {
-    console.log('Starting save operation for profile:', profileName);
-    console.log('Data to save:', JSON.stringify(data, null, 2));
+    console.log('Saving collection for profile:', profileName);
+    console.log('Collection data:', {
+      profileName: data.profileName,
+      cardCount: Object.keys(data.collection).length,
+      lastUpdated: new Date(data.lastUpdated).toISOString()
+    });
     
     const docRef = doc(db, 'collections', profileName);
-    console.log('Document reference created');
+    console.log('Document reference created for:', docRef.path);
     
-    const saveData = {
-      ...data,
-      lastUpdated: Date.now()
-    };
-    console.log('Prepared data for save:', saveData);
-    
-    await setDoc(docRef, saveData);
-    console.log('Collection saved successfully');
+    await setDoc(docRef, data);
+    console.log('Collection saved successfully to Firebase');
   } catch (error: any) {
-    console.error('Detailed save error:', {
+    console.error('Firebase save error:', {
       message: error?.message || 'Unknown error',
       code: error?.code || 'UNKNOWN',
       stack: error?.stack || 'No stack trace'
