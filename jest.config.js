@@ -10,10 +10,12 @@ const customJestConfig = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@next/font/(.*)$': require.resolve('next/dist/build/jest/__mocks__/nextFont.js'),
+    'next/font/(.*)': require.resolve('next/dist/build/jest/__mocks__/nextFont.js')
   },
   transform: {
-    '^.+\\.(ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
+    '^.+\\.(js|jsx|ts|tsx)$': ['next/dist/build/swc/jest']
   }
 };
 
