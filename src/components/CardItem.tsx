@@ -7,13 +7,21 @@ interface CardItemProps {
 }
 
 export const CardItem = ({ card }: CardItemProps) => {
-  const { toggleCard, hasCard } = useCollectionStore();
+  const { addCard, removeCard, hasCard } = useCollectionStore();
   const isCollected = hasCard(card.id);
+
+  const handleCardClick = () => {
+    if (isCollected) {
+      removeCard(card.id);
+    } else {
+      addCard(card.id);
+    }
+  };
 
   return (
     <div 
       className="relative group cursor-pointer"
-      onClick={() => toggleCard(card.id)}
+      onClick={handleCardClick}
     >
       <div className="relative aspect-[2.5/3.5] rounded-lg overflow-hidden">
         <img
