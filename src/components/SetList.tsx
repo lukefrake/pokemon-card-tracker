@@ -21,9 +21,27 @@ export function SetList({ onSetSelect }: SetListProps) {
   const loadSets = async () => {
     try {
       setError(null);
+      setLoading(true);
       const fetchedSets = await PokemonTCG.getSets(page);
-      setSets(prevSets => [...prevSets, ...fetchedSets]);
-      setHasMore(fetchedSets.length > 0);
+      
+      // Only update sets if we got new data
+      if (fetchedSets.length > 0) {
+        // Create a Map of existing sets to prevent duplicates
+        const existingSets = new Map(sets.map(set => [set.id, set]));
+        
+        // Add new sets that don't already exist
+        fetchedSets.forEach(set => {
+          if (!existingSets.has(set.id)) {
+            existingSets.set(set.id, set);
+          }
+        });
+        
+        // Convert Map back to array
+        setSets(Array.from(existingSets.values()));
+        setHasMore(fetchedSets.length === 24); // 24 is our SETS_PER_PAGE
+      } else {
+        setHasMore(false);
+      }
     } catch (err) {
       setError('Failed to load sets. Please try again later.');
       console.error('Error loading sets:', err);
@@ -60,7 +78,7 @@ export function SetList({ onSetSelect }: SetListProps) {
     };
   }, [hasMore, loading]);
 
-  // Load initial sets
+  // Load sets when page changes
   useEffect(() => {
     loadSets();
   }, [page]);

@@ -17,17 +17,16 @@ export const PokemonTCG = {
       }
 
       // Import and use the service functions
-      const { getAllSets } = await import('pokemon-tcg-sdk-typescript/dist/services/setService');
-      const allSets = await getAllSets();
+      const { findSetsByQueries } = await import('pokemon-tcg-sdk-typescript/dist/services/setService');
       
-      // Sort sets by release date (newest first)
-      const sortedSets = allSets.sort((a: Set, b: Set) => b.releaseDate.localeCompare(a.releaseDate));
+      // Use the API's built-in pagination
+      const sets = await findSetsByQueries({
+        orderBy: '-releaseDate', // Sort by release date descending
+        page: page,
+        pageSize: SETS_PER_PAGE
+      });
       
-      // Calculate pagination
-      const start = (page - 1) * SETS_PER_PAGE;
-      const end = start + SETS_PER_PAGE;
-      
-      return sortedSets.slice(start, end);
+      return sets;
     } catch (error) {
       console.error('Error fetching sets:', error);
       return [];
