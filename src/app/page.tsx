@@ -17,9 +17,8 @@ export default function Home() {
   const hydrated = useCollectionStore((state) => state.hydrated);
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleSetSelect = async (set: Set) => {
+  const loadCardsForSet = async (set: Set) => {
     setLoading(true);
-    setSelectedSet(set);
     try {
       const fetchedCards = await PokemonTCG.getCards(set.id);
       setCards(fetchedCards);
@@ -29,6 +28,68 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  const handleSetSelect = async (set: Set) => {
+    setSelectedSet(set);
+    // Update URL hash
+    window.history.pushState(null, '', `#set=${set.id}`);
+    await loadCardsForSet(set);
+  };
+
+  const handleBack = () => {
+    setSelectedSet(null);
+    setCards([]);
+    // Remove hash from URL
+    window.history.pushState(null, '', window.location.pathname);
+  };
+
+  // Handle initial load and hash changes
+  useEffect(() => {
+    const loadInitialSet = async () => {
+      const hash = window.location.hash;
+      const setId = hash.replace('#set=', '');
+      
+      if (setId && hydrated) {
+        setLoading(true);
+        try {
+          const sets = await PokemonTCG.getSets(1);
+          const set = sets.find(s => s.id === setId);
+          if (set) {
+            setSelectedSet(set);
+            await loadCardsForSet(set);
+          }
+        } catch (error) {
+          console.error('Error loading initial set:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadInitialSet();
+
+    // Handle back/forward button clicks
+    const handleHashChange = async () => {
+      const hash = window.location.hash;
+      if (!hash) {
+        setSelectedSet(null);
+        setCards([]);
+      } else {
+        const setId = hash.replace('#set=', '');
+        if (setId && selectedSet?.id !== setId) {
+          const sets = await PokemonTCG.getSets(1);
+          const set = sets.find(s => s.id === setId);
+          if (set) {
+            setSelectedSet(set);
+            await loadCardsForSet(set);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [hydrated]);
 
   useEffect(() => {
     if (hydrated) {
@@ -73,10 +134,7 @@ export default function Home() {
                 {selectedSet.name} Cards
               </h2>
               <button
-                onClick={() => {
-                  setSelectedSet(null);
-                  setCards([]);
-                }}
+                onClick={handleBack}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
                 Back to Sets
