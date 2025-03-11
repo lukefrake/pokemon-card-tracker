@@ -2,21 +2,18 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User } from 'firebase/auth';
-import { initializeAuth, getUserCollection, saveUserCollection, onAuthChange } from '../lib/firebase';
+import { getUserCollection, saveUserCollection } from '../lib/firebase';
 
 interface CollectionState {
   profileName: string | null;
   collection: Record<string, boolean>;
   hydrated: boolean;
-  user: User | null;
   error: string | null;
   setHydrated: () => void;
   setProfileName: (name: string) => void;
   addCard: (cardId: string) => void;
   removeCard: (cardId: string) => void;
   hasCard: (cardId: string) => boolean;
-  setUser: (user: User | null) => void;
   setError: (error: string | null) => void;
   syncWithFirebase: () => Promise<void>;
 }
@@ -27,14 +24,26 @@ export const useCollectionStore = create<CollectionState>()(
       profileName: null,
       collection: {},
       hydrated: false,
-      user: null,
       error: null,
       setHydrated: () => set({ hydrated: true }),
-      setUser: (user) => set({ user }),
-      setError: (error) => set({ error }),
       setProfileName: async (name) => {
+        console.log('Setting profile name:', name);
         set({ profileName: name });
-        await get().syncWithFirebase();
+        
+        // Try to load existing collection for this profile
+        try {
+          const existingData = await getUserCollection(name);
+          if (existingData) {
+            console.log('Found existing collection:', existingData);
+            set({ collection: existingData.collection });
+          } else {
+            console.log('No existing collection found, starting fresh');
+            set({ collection: {} });
+          }
+        } catch (error) {
+          console.error('Error loading collection:', error);
+          set({ error: 'Failed to load collection. Please try again.' });
+        }
       },
       addCard: async (cardId) => {
         set((state) => ({
@@ -55,16 +64,22 @@ export const useCollectionStore = create<CollectionState>()(
         await get().syncWithFirebase();
       },
       hasCard: (cardId) => get().collection[cardId] || false,
+      setError: (error) => set({ error }),
       syncWithFirebase: async () => {
-        const { user, profileName, collection } = get();
-        if (!user) return;
+        const { profileName, collection } = get();
+        if (!profileName) {
+          console.log('No profile name set, skipping sync');
+          return;
+        }
 
         try {
-          await saveUserCollection(user.uid, {
+          console.log('Syncing collection for profile:', profileName);
+          await saveUserCollection(profileName, {
             profileName,
             collection,
             lastUpdated: Date.now(),
           });
+          set({ error: null }); // Clear any previous errors on successful sync
         } catch (error) {
           console.error('Error syncing with Firebase:', error);
           set({ error: 'Failed to save your collection. Please try again.' });
@@ -81,33 +96,12 @@ export const useCollectionStore = create<CollectionState>()(
         if (!state) return;
 
         try {
-          // Initialize anonymous auth
-          const user = await initializeAuth();
-          state.setUser(user);
-          
-          // Get collection from Firebase
-          const firebaseData = await getUserCollection(user.uid);
-          if (firebaseData) {
-            if (firebaseData.profileName) {
-              state.setProfileName(firebaseData.profileName);
+          if (state.profileName) {
+            const firebaseData = await getUserCollection(state.profileName);
+            if (firebaseData) {
+              useCollectionStore.setState({ collection: firebaseData.collection });
             }
-            useCollectionStore.setState({ collection: firebaseData.collection });
           }
-          
-          // Set up auth state listener
-          onAuthChange((user) => {
-            state.setUser(user);
-            if (user) {
-              getUserCollection(user.uid).then((data) => {
-                if (data) {
-                  if (data.profileName) {
-                    state.setProfileName(data.profileName);
-                  }
-                  useCollectionStore.setState({ collection: data.collection });
-                }
-              });
-            }
-          });
         } catch (error) {
           console.error('Error initializing store:', error);
           state.setError('Failed to initialize. Please refresh the page.');

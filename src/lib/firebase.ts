@@ -1,10 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  // TODO: Replace with your Firebase config
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -15,7 +13,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+console.log('Firebase initialized with project:', app.options.projectId);
 const db = getFirestore(app);
 
 export interface CollectionData {
@@ -25,14 +23,17 @@ export interface CollectionData {
 }
 
 // Function to get the current user's collection
-export async function getUserCollection(userId: string): Promise<CollectionData | null> {
+export async function getUserCollection(profileName: string): Promise<CollectionData | null> {
   try {
-    const docRef = doc(db, 'collections', userId);
+    const docRef = doc(db, 'collections', profileName);
     const docSnap = await getDoc(docRef);
     
+    console.log('Fetching collection for profile:', profileName);
     if (docSnap.exists()) {
+      console.log('Found collection with data:', docSnap.data());
       return docSnap.data() as CollectionData;
     }
+    console.log('No collection found for profile');
     return null;
   } catch (error) {
     console.error('Error getting collection:', error);
@@ -41,34 +42,30 @@ export async function getUserCollection(userId: string): Promise<CollectionData 
 }
 
 // Function to save the user's collection
-export async function saveUserCollection(userId: string, data: CollectionData): Promise<void> {
+export async function saveUserCollection(profileName: string, data: CollectionData): Promise<void> {
   try {
-    const docRef = doc(db, 'collections', userId);
-    await setDoc(docRef, {
+    console.log('Starting save operation for profile:', profileName);
+    console.log('Data to save:', JSON.stringify(data, null, 2));
+    
+    const docRef = doc(db, 'collections', profileName);
+    console.log('Document reference created');
+    
+    const saveData = {
       ...data,
       lastUpdated: Date.now()
-    });
+    };
+    console.log('Prepared data for save:', saveData);
+    
+    await setDoc(docRef, saveData);
     console.log('Collection saved successfully');
-  } catch (error) {
-    console.error('Error saving collection:', error);
+  } catch (error: any) {
+    console.error('Detailed save error:', {
+      message: error?.message || 'Unknown error',
+      code: error?.code || 'UNKNOWN',
+      stack: error?.stack || 'No stack trace'
+    });
     throw error;
   }
 }
 
-// Function to initialize anonymous auth
-export async function initializeAuth(): Promise<User> {
-  try {
-    const userCredential = await signInAnonymously(auth);
-    return userCredential.user;
-  } catch (error) {
-    console.error('Error initializing auth:', error);
-    throw error;
-  }
-}
-
-// Function to listen to auth state changes
-export function onAuthChange(callback: (user: User | null) => void): () => void {
-  return onAuthStateChanged(auth, callback);
-}
-
-export { auth, db }; 
+export { db }; 

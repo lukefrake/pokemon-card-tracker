@@ -5,18 +5,9 @@ on:
     branches:
       - main
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -26,6 +17,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Debug Secrets
         run: |
@@ -45,9 +39,6 @@ jobs:
           else
             echo "FIREBASE_PROJECT_ID is missing"
           fi
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Create env file
         run: |
@@ -71,12 +62,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Add .nojekyll file
-        run: touch out/.nojekyll
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out
-          enable_jekyll: false 
+          publish_dir: ./out 
