@@ -14,7 +14,7 @@ export default function Home() {
   const [selectedSet, setSelectedSet] = useState<Set | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(false);
-  const currentProfile = useCollectionStore((state) => state.currentProfile);
+  const profileName = useCollectionStore((state) => state.profileName);
 
   const handleSetSelect = async (set: Set) => {
     setLoading(true);
@@ -32,18 +32,20 @@ export default function Home() {
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8 text-center text-gray-900 dark:text-gray-100">
-        Pokemon Card Tracker
+        {profileName ? `${profileName}'s ` : ''}Pokemon Card Tracker
       </h1>
 
-      <div className="mb-8">
-        <ProfileManager />
-      </div>
+      {!profileName && (
+        <div className="mb-8">
+          <ProfileManager />
+        </div>
+      )}
       
-      {currentProfile ? (
+      {profileName ? (
         !selectedSet ? (
           <>
             <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-              {currentProfile}&apos;s Sets
+              Available Sets
             </h2>
             <SetList onSetSelect={handleSetSelect} />
           </>
@@ -51,7 +53,7 @@ export default function Home() {
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                {currentProfile}&apos;s {selectedSet.name} Cards
+                {selectedSet.name} Cards
               </h2>
               <button
                 onClick={() => {
