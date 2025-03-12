@@ -10,53 +10,54 @@ export function FirebaseInit() {
   useEffect(() => {
     console.log('[Firebase] FirebaseInit useEffect triggered');
 
+    // Create debug element immediately
+    const debugDiv = document.createElement('div');
+    debugDiv.style.position = 'fixed';
+    debugDiv.style.bottom = '10px';
+    debugDiv.style.right = '10px';
+    debugDiv.style.padding = '10px';
+    debugDiv.style.background = 'rgba(0,0,0,0.8)';
+    debugDiv.style.color = 'white';
+    debugDiv.style.borderRadius = '5px';
+    debugDiv.style.fontSize = '12px';
+    debugDiv.style.fontFamily = 'monospace';
+    debugDiv.style.zIndex = '9999';
+    debugDiv.innerHTML = `Firebase: Initializing...<br>Time: ${new Date().toISOString()}`;
+    document.body.appendChild(debugDiv);
+
     const initFirebase = async () => {
       console.log('[Firebase] Starting initialization...');
       
       try {
-        await import('@/lib/firebase');
-        console.log('[Firebase] Initialization complete');
+        const firebase = await import('@/lib/firebase');
+        console.log('[Firebase] Initialization complete', firebase);
 
-        // Create debug element for all environments
-        const debugDiv = document.createElement('div');
-        debugDiv.style.position = 'fixed';
-        debugDiv.style.bottom = '10px';
-        debugDiv.style.right = '10px';
-        debugDiv.style.padding = '10px';
         debugDiv.style.background = 'rgba(0,0,0,0.8)';
-        debugDiv.style.color = 'white';
-        debugDiv.style.borderRadius = '5px';
-        debugDiv.style.fontSize = '12px';
-        debugDiv.style.fontFamily = 'monospace';
-        debugDiv.style.zIndex = '9999';
         debugDiv.innerHTML = `Firebase: Connected<br>Time: ${new Date().toISOString()}`;
         
         // Add additional debug info in development
         if (process.env.NODE_ENV === 'development') {
           debugDiv.innerHTML += `<br>ENV: ${process.env.NODE_ENV}`;
         }
-        
-        document.body.appendChild(debugDiv);
       } catch (error) {
-        console.error('[Firebase] Connection error');
+        console.error('[Firebase] Connection error:', error);
         
-        const errorDiv = document.createElement('div');
-        errorDiv.style.position = 'fixed';
-        errorDiv.style.bottom = '10px';
-        errorDiv.style.right = '10px';
-        errorDiv.style.padding = '10px';
-        errorDiv.style.background = 'rgba(255,0,0,0.8)';
-        errorDiv.style.color = 'white';
-        errorDiv.style.borderRadius = '5px';
-        errorDiv.style.fontSize = '12px';
-        errorDiv.style.fontFamily = 'monospace';
-        errorDiv.style.zIndex = '9999';
-        errorDiv.innerHTML = `Firebase: Disconnected<br>Time: ${new Date().toISOString()}`;
-        document.body.appendChild(errorDiv);
+        debugDiv.style.background = 'rgba(255,0,0,0.8)';
+        debugDiv.innerHTML = `Firebase: Error<br>Time: ${new Date().toISOString()}<br>Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
     };
 
-    initFirebase();
+    initFirebase().catch(error => {
+      console.error('[Firebase] Unhandled error:', error);
+    });
+
+    // Cleanup function
+    return () => {
+      const existingDebug = document.querySelector('div[data-firebase-debug]');
+      if (existingDebug) {
+        existingDebug.remove();
+      }
+    };
   }, []);
 
   return null;
