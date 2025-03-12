@@ -53,6 +53,15 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: yarn build
 
+      - name: Verify Build Output
+        run: |
+          echo "Checking for Firebase configuration in build output..."
+          if grep -r "firebaseConfig" out/; then
+            echo "Found Firebase configuration in build output"
+          else
+            echo "Warning: No Firebase configuration found in build output"
+          fi
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
