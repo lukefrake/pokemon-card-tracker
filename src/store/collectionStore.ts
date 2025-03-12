@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getUserCollection, saveUserCollection } from '../lib/firebase';
+import { getUserCollection, saveUserCollection } from '../lib/firebaseClient';
 
 interface CollectionState {
   profileName: string | null;
@@ -26,49 +26,17 @@ export const useCollectionStore = create<CollectionState>()(
       hydrated: false,
       error: null,
       setHydrated: () => set({ hydrated: true }),
-      setProfileName: async (name) => {
-        console.log('Setting profile name:', name);
-        set({ profileName: name });
-        
-        // Try to load existing collection for this profile
-        try {
-          const existingData = await getUserCollection(name);
-          if (existingData) {
-            console.log('Found existing collection:', existingData);
-            set({ collection: existingData.collection });
-          } else {
-            console.log('No existing collection found, starting fresh');
-            set({ collection: {} });
-          }
-          // Always sync after setting profile name to ensure data is saved
-          await get().syncWithFirebase();
-        } catch (error) {
-          console.error('Error loading collection:', error);
-          set({ error: 'Failed to load collection. Please try again.' });
-        }
-      },
-      addCard: async (cardId) => {
-        console.log('Adding card:', cardId);
-        set((state) => ({
-          collection: {
-            ...state.collection,
-            [cardId]: true,
-          },
-        }));
-        await get().syncWithFirebase();
-      },
-      removeCard: async (cardId) => {
-        console.log('Removing card:', cardId);
-        set((state) => {
-          const { [cardId]: removed, ...rest } = state.collection;
-          return {
-            collection: rest,
-          };
-        });
-        await get().syncWithFirebase();
-      },
-      hasCard: (cardId) => get().collection[cardId] || false,
-      setError: (error) => set({ error }),
+      setProfileName: (name: string) => set({ profileName: name }),
+      addCard: (cardId: string) => set((state) => ({
+        collection: { ...state.collection, [cardId]: true }
+      })),
+      removeCard: (cardId: string) => set((state) => {
+        const newCollection = { ...state.collection };
+        delete newCollection[cardId];
+        return { collection: newCollection };
+      }),
+      hasCard: (cardId: string) => get().collection[cardId] || false,
+      setError: (error: string | null) => set({ error }),
       syncWithFirebase: async () => {
         const { profileName, collection } = get();
         if (!profileName) {
