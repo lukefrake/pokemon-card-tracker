@@ -1,27 +1,27 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
-import { getFirebaseConfig } from '../config/firebase';
 
-// Get Firebase configuration with debug info
-const { _debugInfo, ...firebaseConfig } = getFirebaseConfig();
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
 
-// Debug Firebase configuration
-console.log('[Firebase Config]', {
-  ..._debugInfo,
-  isClient: typeof window !== 'undefined'
-});
-
+// Initialize Firebase
 let app;
 let db: Firestore;
 
-// Initialize Firebase
 try {
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-    throw new Error('Missing required Firebase configuration. Check environment variables.');
+    throw new Error('Missing required Firebase configuration');
   }
 
   app = initializeApp(firebaseConfig);
-  console.log('[Firebase] Initialized with project:', app.options.projectId);
+  console.log('[Firebase] Initialized successfully');
   
   db = getFirestore(app);
   console.log('[Firebase] Firestore initialized');

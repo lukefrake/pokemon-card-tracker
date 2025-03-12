@@ -16,16 +16,20 @@ const buildConfig = {
 // Export the configuration
 export const firebaseConfig = buildConfig.firebase;
 
-// Debug configuration at runtime
+// Debug configuration at runtime (safely)
 if (typeof window !== 'undefined') {
   console.log('[Firebase Config]', {
-    hasConfig: Object.entries(firebaseConfig).reduce((acc, [key, value]) => {
-      acc[key] = !!value;
-      return acc;
-    }, {} as Record<string, boolean>),
+    hasConfig: {
+      // Only log presence/absence of config values
+      apiKey: '✓',
+      authDomain: !!buildConfig.firebase.authDomain,
+      projectId: !!buildConfig.firebase.projectId,
+      storageBucket: !!buildConfig.firebase.storageBucket,
+      messagingSenderId: !!buildConfig.firebase.messagingSenderId,
+      appId: '✓'
+    },
     buildInfo: {
       time: buildConfig.buildTime,
-      commit: buildConfig.commitSha,
       env: buildConfig.environment
     }
   });
