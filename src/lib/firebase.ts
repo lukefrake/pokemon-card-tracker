@@ -2,6 +2,8 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
 import getConfig from 'next/config';
 
+console.log('[Firebase] Module Load');
+
 // Get runtime config
 const { publicRuntimeConfig } = getConfig() || {};
 
@@ -17,28 +19,59 @@ const firebaseConfig = {
 
 // Debug configuration at runtime
 if (typeof window !== 'undefined') {
-  console.log('[Firebase] Configuration:', {
-    hasConfig: {
-      apiKey: !!firebaseConfig.apiKey,
-      authDomain: !!firebaseConfig.authDomain,
-      projectId: !!firebaseConfig.projectId,
-      storageBucket: !!firebaseConfig.storageBucket,
-      messagingSenderId: !!firebaseConfig.messagingSenderId,
-      appId: !!firebaseConfig.appId
-    },
-    buildInfo: {
-      environment: process.env.NODE_ENV,
-      buildTime: new Date().toISOString()
+  // Log the raw config (safely)
+  console.log('[Firebase] Raw Config Check:', {
+    apiKey: firebaseConfig.apiKey ? '✓' : '✗',
+    authDomain: firebaseConfig.authDomain ? '✓' : '✗',
+    projectId: firebaseConfig.projectId ? '✓' : '✗',
+    storageBucket: firebaseConfig.storageBucket ? '✓' : '✗',
+    messagingSenderId: firebaseConfig.messagingSenderId ? '✓' : '✗',
+    appId: firebaseConfig.appId ? '✓' : '✗'
+  });
+
+  // Log environment info
+  console.log('[Firebase] Environment:', {
+    nodeEnv: process.env.NODE_ENV,
+    basePath: process.env.NEXT_PUBLIC_BASE_PATH,
+    buildTime: new Date().toISOString(),
+    window: {
+      location: window.location.href,
+      hostname: window.location.hostname
     }
   });
+
+  // Add visual indicator to the page
+  const debugDiv = document.createElement('div');
+  debugDiv.style.position = 'fixed';
+  debugDiv.style.bottom = '10px';
+  debugDiv.style.right = '10px';
+  debugDiv.style.padding = '10px';
+  debugDiv.style.background = 'rgba(0,0,0,0.8)';
+  debugDiv.style.color = 'white';
+  debugDiv.style.borderRadius = '5px';
+  debugDiv.style.fontSize = '12px';
+  debugDiv.style.fontFamily = 'monospace';
+  debugDiv.style.zIndex = '9999';
+  debugDiv.innerHTML = `
+    Firebase Status:<br>
+    API Key: ${firebaseConfig.apiKey ? '✓' : '✗'}<br>
+    Project ID: ${firebaseConfig.projectId ? '✓' : '✗'}<br>
+    ENV: ${process.env.NODE_ENV}
+  `;
+  document.body.appendChild(debugDiv);
 }
 
 // Initialize Firebase
+console.log('[Firebase] Initializing...');
 let app;
 let db: Firestore;
 
 try {
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    console.error('[Firebase] Missing required configuration:', {
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasProjectId: !!firebaseConfig.projectId
+    });
     throw new Error('Missing required Firebase configuration');
   }
 
