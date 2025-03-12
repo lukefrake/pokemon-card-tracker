@@ -29,7 +29,7 @@ export function FirebaseInit() {
         debugDiv.style.fontSize = '12px';
         debugDiv.style.fontFamily = 'monospace';
         debugDiv.style.zIndex = '9999';
-        debugDiv.innerHTML = `Firebase: Connected`;
+        debugDiv.innerHTML = `Firebase: Connected<br>Time: ${new Date().toISOString()}`;
         
         // Add additional debug info in development
         if (process.env.NODE_ENV === 'development') {
@@ -51,7 +51,7 @@ export function FirebaseInit() {
         errorDiv.style.fontSize = '12px';
         errorDiv.style.fontFamily = 'monospace';
         errorDiv.style.zIndex = '9999';
-        errorDiv.innerHTML = 'Firebase: Disconnected';
+        errorDiv.innerHTML = `Firebase: Disconnected<br>Time: ${new Date().toISOString()}`;
         document.body.appendChild(errorDiv);
       }
     };
