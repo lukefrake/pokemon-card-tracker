@@ -37,7 +37,11 @@ if (typeof window !== 'undefined') {
     window: {
       location: window.location.href,
       hostname: window.location.hostname
-    }
+    },
+    publicRuntimeConfig: publicRuntimeConfig ? {
+      hasConfig: Object.keys(publicRuntimeConfig).length > 0,
+      keys: Object.keys(publicRuntimeConfig)
+    } : 'no config'
   });
 }
 
@@ -45,7 +49,11 @@ if (typeof window !== 'undefined') {
 console.log('[Firebase] Initializing with config:', {
   hasApiKey: !!firebaseConfig.apiKey,
   hasProjectId: !!firebaseConfig.projectId,
-  env: process.env.NODE_ENV
+  env: process.env.NODE_ENV,
+  publicRuntimeConfig: publicRuntimeConfig ? {
+    hasConfig: Object.keys(publicRuntimeConfig).length > 0,
+    keys: Object.keys(publicRuntimeConfig)
+  } : 'no config'
 });
 
 let app;
@@ -53,6 +61,15 @@ let db: Firestore;
 
 try {
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    console.error('[Firebase] Missing required config:', {
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasProjectId: !!firebaseConfig.projectId,
+      env: process.env.NODE_ENV,
+      publicRuntimeConfig: publicRuntimeConfig ? {
+        hasConfig: Object.keys(publicRuntimeConfig).length > 0,
+        keys: Object.keys(publicRuntimeConfig)
+      } : 'no config'
+    });
     throw new Error('Firebase configuration is incomplete');
   }
 
@@ -62,7 +79,18 @@ try {
   db = getFirestore(app);
   console.log('[Firebase] Connected to Firestore');
 } catch (error) {
-  console.error('[Firebase] Initialization error');
+  console.error('[Firebase] Initialization error:', {
+    error,
+    config: {
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasProjectId: !!firebaseConfig.projectId
+    },
+    env: process.env.NODE_ENV,
+    publicRuntimeConfig: publicRuntimeConfig ? {
+      hasConfig: Object.keys(publicRuntimeConfig).length > 0,
+      keys: Object.keys(publicRuntimeConfig)
+    } : 'no config'
+  });
   throw error;
 }
 
