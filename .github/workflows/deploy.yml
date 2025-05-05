@@ -68,7 +68,16 @@ jobs:
           fi
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./out 
+          publish_dir: ./out
+          force_orphan: true
+          commit_message: "deploy: ${{ github.sha }}"
+
+      - name: Verify Deployment
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 30
+          echo "Checking deployment status..."
+          curl -s https://lukefrake.github.io/pokemon-card-tracker/ | grep -q "Pokemon Card Tracker" || exit 1 
