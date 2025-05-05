@@ -2,15 +2,16 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getUserCollection, saveUserCollection } from '../lib/firebaseClient';
+import { getUserCollection, saveUserCollection, onAuthStateChange } from '../lib/firebaseClient';
+import { User } from 'firebase/auth';
 
 interface CollectionState {
-  profileName: string | null;
+  user: User | null;
   collection: Record<string, boolean>;
   hydrated: boolean;
   error: string | null;
   setHydrated: () => void;
-  setProfileName: (name: string) => void;
+  setUser: (user: User | null) => void;
   addCard: (cardId: string) => void;
   removeCard: (cardId: string) => void;
   hasCard: (cardId: string) => boolean;
@@ -21,41 +22,66 @@ interface CollectionState {
 export const useCollectionStore = create<CollectionState>()(
   persist(
     (set, get) => ({
-      profileName: null,
+      user: null,
       collection: {},
       hydrated: false,
       error: null,
       setHydrated: () => set({ hydrated: true }),
-      setProfileName: (name: string) => set({ profileName: name }),
-      addCard: (cardId: string) => set((state) => ({
-        collection: { ...state.collection, [cardId]: true }
-      })),
-      removeCard: (cardId: string) => set((state) => {
-        const newCollection = { ...state.collection };
-        delete newCollection[cardId];
-        return { collection: newCollection };
-      }),
+      setUser: async (user: User | null) => {
+        set({ user });
+        if (user) {
+          try {
+            const existingData = await getUserCollection(user.uid);
+            if (existingData) {
+              console.log('Found existing collection for user:', user.uid);
+              set({ collection: existingData.collection });
+            } else {
+              console.log('No existing collection found for user:', user.uid);
+              set({ collection: {} });
+            }
+            await get().syncWithFirebase();
+          } catch (error) {
+            console.error('Error loading collection:', error);
+            set({ error: 'Failed to load collection' });
+          }
+        } else {
+          set({ collection: {} });
+        }
+      },
+      addCard: async (cardId: string) => {
+        set((state) => ({
+          collection: { ...state.collection, [cardId]: true }
+        }));
+        await get().syncWithFirebase();
+      },
+      removeCard: async (cardId: string) => {
+        set((state) => {
+          const newCollection = { ...state.collection };
+          delete newCollection[cardId];
+          return { collection: newCollection };
+        });
+        await get().syncWithFirebase();
+      },
       hasCard: (cardId: string) => get().collection[cardId] || false,
       setError: (error: string | null) => set({ error }),
       syncWithFirebase: async () => {
-        const { profileName, collection } = get();
-        if (!profileName) {
-          console.log('No profile name set, skipping sync');
+        const { user, collection } = get();
+        if (!user) {
+          console.log('No user logged in, skipping sync');
           return;
         }
 
         try {
-          console.log('Starting Firebase sync for profile:', profileName);
+          console.log('Starting Firebase sync for user:', user.uid);
           console.log('Collection to sync:', collection);
           
-          await saveUserCollection(profileName, {
-            profileName,
+          await saveUserCollection(user.uid, {
             collection,
             lastUpdated: Date.now(),
           });
           
           // Verify the save by reading back the data
-          const savedData = await getUserCollection(profileName);
+          const savedData = await getUserCollection(user.uid);
           console.log('Verified saved data:', savedData);
           
           if (!savedData) {
@@ -67,14 +93,13 @@ export const useCollectionStore = create<CollectionState>()(
         } catch (error) {
           console.error('Error syncing with Firebase:', error);
           set({ error: 'Failed to save your collection. Please try again.' });
-          throw error; // Re-throw to ensure errors are properly handled
+          throw error;
         }
       },
     }),
     {
       name: 'pokemon-collection',
       partialize: (state) => ({
-        profileName: state.profileName,
         collection: state.collection,
       }),
       onRehydrateStorage: () => async (state) => {
@@ -82,16 +107,14 @@ export const useCollectionStore = create<CollectionState>()(
 
         try {
           console.log('Rehydrating storage with state:', state);
-          if (state.profileName) {
-            console.log('Loading collection for profile:', state.profileName);
-            const firebaseData = await getUserCollection(state.profileName);
-            if (firebaseData) {
-              console.log('Found Firebase data:', firebaseData);
-              useCollectionStore.setState({ collection: firebaseData.collection });
-            } else {
-              console.log('No Firebase data found for profile:', state.profileName);
-            }
-          }
+          // Set up auth state listener
+          const unsubscribe = onAuthStateChange((user) => {
+            console.log('Auth state changed:', user?.uid);
+            state.setUser(user);
+          });
+
+          // Clean up listener when store is destroyed
+          return () => unsubscribe();
         } catch (error) {
           console.error('Error initializing store:', error);
           state.setError('Failed to initialize. Please refresh the page.');

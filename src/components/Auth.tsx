@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn, signUp } from '../lib/firebaseClient';
 import { useCollectionStore } from '../store/collectionStore';
-import { signUp } from '../lib/firebaseClient';
 
-export default function ProfileManager() {
-  const { user } = useCollectionStore();
+export default function Auth() {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const setUser = useCollectionStore(state => state.setUser);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,28 +18,24 @@ export default function ProfileManager() {
     setLoading(true);
 
     try {
-      await signUp(email, password);
-      setEmail('');
-      setPassword('');
+      const user = isLogin 
+        ? await signIn(email, password)
+        : await signUp(email, password);
+      
+      setUser(user);
     } catch (error: any) {
-      console.error('Signup error:', error);
-      setError(error.message || 'Failed to create account');
+      console.error('Auth error:', error);
+      setError(error.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }
   };
 
-  if (user) {
-    return (
-      <div className="text-center">
-        <p className="text-gray-600">Logged in as: {user.email}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Create Account</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">
+        {isLogin ? 'Login' : 'Sign Up'}
+      </h2>
       
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
@@ -80,9 +77,18 @@ export default function ProfileManager() {
           disabled={loading}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
         >
-          {loading ? 'Creating Account...' : 'Create Account'}
+          {loading ? 'Loading...' : isLogin ? 'Login' : 'Sign Up'}
         </button>
       </form>
+
+      <div className="mt-4 text-center">
+        <button
+          onClick={() => setIsLogin(!isLogin)}
+          className="text-sm text-blue-600 hover:text-blue-500"
+        >
+          {isLogin ? 'Need an account? Sign up' : 'Already have an account? Login'}
+        </button>
+      </div>
     </div>
   );
 } 
